@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
-<title>ブロック崩し - 全部入り</title>
+<title>ブロック崩し - 全10ステージ</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Segoe UI',sans-serif;color:#fff;overflow:hidden}
@@ -20,28 +20,30 @@ canvas{display:block;background:#16213e;border:2px solid #0f3460;border-radius:8
 <body>
 <div id="info">
   <span id="sc">Score: 0</span>
+  <span id="st">Stage: 1</span>
   <span id="lf">♥♥♥</span>
   <span id="hi">HI: 0</span>
 </div>
 <canvas id="c"></canvas>
 <div id="overlay">
   <h1>🧱 ブロック崩し</h1>
-  <p>隠しキャラを見つけてパワーアップ！</p>
-  <p class="sub">タップ or クリックでスタート</p>
+  <p>⭐ 星ブロックを壊してボール追加！</p>
+  <p class="sub">全10ステージクリアを目指せ！</p>
   <button id="btn">スタート</button>
 </div>
 <script>
 var c=document.getElementById('c'),x=c.getContext('2d');
 var W=480,H=640;c.width=W;c.height=H;
-var score=0,lives=3,state='idle';
-var hisc=parseInt(localStorage.getItem('bkHi2')||'0');
-var COLS=8,ROWS=5;
-var colors=['#e94560','#f5a623','#f7dc6f','#2ecc71','#3498db'];
+var score=0,lives=3,state='idle',stage=1;
+var hisc=parseInt(localStorage.getItem('bkHi3')||'0');
+var COLS=8,ROWS=5,MAX_STAGE=10;
+var baseColors=['#e94560','#f5a623','#f7dc6f','#2ecc71','#3498db'];
 var blocks=[],balls=[],parts=[],pups=[];
 var pad={x:200,y:600,w:80,h:12};
 var inX=W/2;
 var wT=0,s2T=0,slT=0,spd=4;
 var MAX_BALLS=5;
+
 function fillRR(ctx,rx,ry,rw,rh,rad){
   if(typeof ctx.roundRect==='function'){
     ctx.beginPath();ctx.roundRect(rx,ry,rw,rh,rad);ctx.fill();
@@ -59,32 +61,50 @@ function fillRR(ctx,rx,ry,rw,rh,rad){
     ctx.closePath();ctx.fill();
   }
 }
+
+function stageRows(){return Math.min(ROWS+Math.floor((stage-1)*0.5),8)}
+function stageSpd(){return 4+stage*0.3}
+function starCount(){return Math.min(8+stage,15)}
+
 function mkB(){
-  blocks=[];var bw=(W-20)/COLS,bh=22,hid=[];
-  while(hid.length<10){var i=Math.floor(Math.random()*COLS*ROWS);if(hid.indexOf(i)===-1)hid.push(i)}
-  for(var r=0;r<ROWS;r++)for(var cc=0;cc<COLS;cc++){
+  blocks=[];var rows=stageRows();var bw=(W-20)/COLS,bh=22,hid=[];
+  var total=COLS*rows;
+  var sc=starCount();
+  while(hid.length<sc){var i=Math.floor(Math.random()*total);if(hid.indexOf(i)===-1)hid.push(i)}
+  for(var r=0;r<rows;r++)for(var cc=0;cc<COLS;cc++){
     var idx=r*COLS+cc;
-    blocks.push({x:10+cc*bw,y:40+r*(bh+4),w:bw-4,h:bh,col:colors[r],alive:true,pts:(ROWS-r)*10,
-      hid:hid.indexOf(idx)!==-1,pw:['multi','wide','x2','slow'][Math.floor(Math.random()*4)],sh:0});
+    blocks.push({x:10+cc*bw,y:40+r*(bh+4),w:bw-4,h:bh,col:baseColors[r%baseColors.length],alive:true,pts:(rows-r)*10,
+      hid:hid.indexOf(idx)!==-1,sh:0});
   }
 }
+
 function addB(bx,by,dx,dy){
   if(balls.length>=MAX_BALLS)return;
   var s=slT>0?spd*0.6:spd,l=Math.sqrt(dx*dx+dy*dy)||1;
   balls.push({x:bx,y:by,dx:dx/l*s,dy:dy/l*s,r:6});
 }
-function reset(){
-  score=0;lives=3;wT=0;s2T=0;slT=0;spd=4;
+
+function startStage(){
+  spd=stageSpd();
+  wT=0;s2T=0;slT=0;
   balls=[];pups=[];parts=[];pad.w=80;pad.x=W/2-40;
   mkB();addB(W/2,pad.y-10,0.5,-1);state='play';
 }
+
+function resetGame(){
+  score=0;lives=3;stage=1;
+  startStage();
+}
+
 c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();inX=(e.clientX-r.left)*(W/r.width)});
 c.addEventListener('touchmove',function(e){e.preventDefault();var r=c.getBoundingClientRect();inX=(e.touches[0].clientX-r.left)*(W/r.width)},{passive:false});
 c.addEventListener('touchstart',function(e){e.preventDefault();var r=c.getBoundingClientRect();inX=(e.touches[0].clientX-r.left)*(W/r.width)},{passive:false});
+
 function spark(sx,sy,sc,n){
   for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=1+Math.random()*3;
     parts.push({x:sx,y:sy,dx:Math.cos(a)*sp,dy:Math.sin(a)*sp,life:30+Math.random()*20,c:sc,sz:2+Math.random()*3});}
 }
+
 function applyPU(t){
   if(t==='multi'){
     var b=balls[0]||{x:pad.x+pad.w/2,y:pad.y-10};
@@ -98,6 +118,7 @@ function applyPU(t){
   else if(t==='x2'){s2T=600}
   else if(t==='slow'){slT=600;for(var i=0;i<balls.length;i++){balls[i].dx*=0.6;balls[i].dy*=0.6}}
 }
+
 function update(){
   if(state!=='play')return;
   var tx=Math.max(0,Math.min(W-pad.w,inX-pad.w/2));pad.x+=(tx-pad.x)*0.25;
@@ -120,11 +141,11 @@ function update(){
       if(b.x+b.r>bl.x&&b.x-b.r<bl.x+bl.w&&b.y+b.r>bl.y&&b.y-b.r<bl.y+bl.h){
         bl.alive=false;score+=s2T>0?bl.pts*2:bl.pts;
         spark(bl.x+bl.w/2,bl.y+bl.h/2,bl.col,10);
-        if(bl.hid){pups.push({x:bl.x+bl.w/2,y:bl.y+bl.h/2,t:bl.pw,dy:2});spark(bl.x+bl.w/2,bl.y+bl.h/2,'#fff',20)}
+        if(bl.hid){pups.push({x:bl.x+bl.w/2,y:bl.y+bl.h/2,t:'multi',dy:2});spark(bl.x+bl.w/2,bl.y+bl.h/2,'#ffd700',20)}
         var oL=b.x+b.r-bl.x,oR=bl.x+bl.w-(b.x-b.r),oT=b.y+b.r-bl.y,oB=bl.y+bl.h-(b.y-b.r);
         var m=Math.min(oL,oR,oT,oB);
         if(m===oT||m===oB)b.dy=-b.dy;else b.dx=-b.dx;
-        spd=Math.min(8,spd+0.02);break;
+        break;
       }
     }
   }
@@ -136,23 +157,38 @@ function update(){
   for(var k=0;k<blocks.length;k++){if(blocks[k].alive&&blocks[k].hid)blocks[k].sh=(blocks[k].sh+0.05)%(Math.PI*2)}
   var allDead=true;
   for(var k2=0;k2<blocks.length;k2++){if(blocks[k2].alive){allDead=false;break}}
-  if(allDead){state='clear';if(score>hisc){hisc=score;localStorage.setItem('bkHi2',hisc)}showOL()}
-  if(score>hisc){hisc=score;localStorage.setItem('bkHi2',hisc)}
+  if(allDead){
+    if(stage>=MAX_STAGE){state='allclear';if(score>hisc){hisc=score;localStorage.setItem('bkHi3',hisc)}showOL()}
+    else{stage++;showStageIntro()}
+  }
+  if(score>hisc){hisc=score;localStorage.setItem('bkHi3',hisc)}
 }
+
+function showStageIntro(){
+  state='stageintro';
+  var o=document.getElementById('overlay');o.className='';
+  o.querySelector('h1').textContent='⭐ Stage '+stage;
+  o.querySelector('p').textContent='スコア: '+score;
+  o.querySelector('.sub').textContent='ボールが速くなるよ！';
+  document.getElementById('btn').textContent='次のステージへ';
+}
+
 function draw(){
   x.clearRect(0,0,W,H);
   for(var i=0;i<blocks.length;i++){
     var bl=blocks[i];if(!bl.alive)continue;
     x.fillStyle=bl.col;fillRR(x,bl.x,bl.y,bl.w,bl.h,4);
-    if(bl.hid){x.fillStyle='rgba(255,255,255,'+(0.3+Math.sin(bl.sh)*0.2)+')';fillRR(x,bl.x,bl.y,bl.w,bl.h,4);}
+    if(bl.hid){
+      x.fillStyle='rgba(255,255,255,'+(0.3+Math.sin(bl.sh)*0.2)+')';fillRR(x,bl.x,bl.y,bl.w,bl.h,4);
+      x.fillStyle='#ffd700';x.font='14px sans-serif';x.textAlign='center';
+      x.fillText('\u2B50',bl.x+bl.w/2,bl.y+bl.h/2+5);
+    }
   }
-  var icons={multi:'\u26A1',wide:'\u2194',x2:'x2',slow:'\uD83D\uDC22'};
-  var pcols={multi:'#ff6bff',wide:'#00e5ff',x2:'#ffd700',slow:'#76ff03'};
   for(var i2=0;i2<pups.length;i2++){
-    var p=pups[i2];x.fillStyle=pcols[p.t]||'#fff';
-    fillRR(x,p.x-14,p.y,28,16,6);
+    var p=pups[i2];
+    x.fillStyle='#ffd700';fillRR(x,p.x-14,p.y,28,16,6);
     x.fillStyle='#000';x.font='12px sans-serif';x.textAlign='center';
-    x.fillText(icons[p.t]||'?',p.x,p.y+13);
+    x.fillText('\u2B50+',p.x,p.y+13);
   }
   for(var i3=0;i3<balls.length;i3++){
     var b=balls[i3];x.fillStyle='#fff';x.shadowColor='#00e5ff';x.shadowBlur=10;
@@ -173,16 +209,24 @@ function draw(){
   }
   x.globalAlpha=1;
   document.getElementById('sc').textContent='Score: '+score;
+  document.getElementById('st').textContent='Stage: '+stage+'/'+MAX_STAGE;
   document.getElementById('lf').textContent=Array(lives+1).join('\u2665');
   document.getElementById('hi').textContent='HI: '+hisc;
 }
+
 function loop(){update();draw();requestAnimationFrame(loop)}
+
 function showOL(){
   var o=document.getElementById('overlay');o.className='';
-  if(state==='over'){o.querySelector('h1').textContent='\uD83D\uDCA5 ゲームオーバー';o.querySelector('p').textContent='スコア: '+score;o.querySelector('.sub').textContent='ハイスコア: '+hisc;document.getElementById('btn').textContent='もう一回'}
-  else if(state==='clear'){o.querySelector('h1').textContent='\uD83C\uDF89 クリア！おめでとう！';o.querySelector('p').textContent='スコア: '+score;o.querySelector('.sub').textContent='ハイスコア: '+hisc;document.getElementById('btn').textContent='もう一回'}
+  if(state==='over'){o.querySelector('h1').textContent='\uD83D\uDCA5 ゲームオーバー';o.querySelector('p').textContent='スコア: '+score;o.querySelector('.sub').textContent='ステージ '+stage+' / ハイスコア: '+hisc;document.getElementById('btn').textContent='もう一回'}
+  else if(state==='allclear'){o.querySelector('h1').textContent='\uD83C\uDF89 全ステージクリア！おめでとう！';o.querySelector('p').textContent='最終スコア: '+score;o.querySelector('.sub').textContent='ハイスコア: '+hisc;document.getElementById('btn').textContent='もう一回'}
 }
-document.getElementById('btn').addEventListener('click',function(){document.getElementById('overlay').className='hidden';reset()});
+
+document.getElementById('btn').addEventListener('click',function(){
+  document.getElementById('overlay').className='hidden';
+  if(state==='stageintro'){startStage()}
+  else{resetGame()}
+});
 loop();
 </script>
 </body>
