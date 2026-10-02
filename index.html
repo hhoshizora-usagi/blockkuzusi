@@ -41,24 +41,15 @@ var blocks=[],balls=[],parts=[],pups=[];
 var pad={x:200,y:600,w:80,h:12};
 var inX=W/2;
 var wT=0,s2T=0,slT=0,spd=4;
-
 function rr(ctx,rx,ry,rw,rh,rad){
-  ctx.beginPath();
-  ctx.moveTo(rx+rad,ry);
-  ctx.lineTo(rx+rw-rad,ry);
-  ctx.arcTo(rx+rw,ry,rx+rw,ry+rad,rad);
-  ctx.lineTo(rx+rw,ry+rh-rad);
-  ctx.arcTo(rx+rw,ry+rh,rx+rw-rad,ry+rh,rad);
-  ctx.lineTo(rx+rad,ry+rh);
-  ctx.arcTo(rx,ry+rh,rx,ry+rh-rad,rad);
-  ctx.lineTo(rx,ry+rad);
-  ctx.arcTo(rx,ry,rx+rad,ry,rad);
-  ctx.closePath();
+  ctx.beginPath();ctx.moveTo(rx+rad,ry);ctx.lineTo(rx+rw-rad,ry);
+  ctx.arcTo(rx+rw,ry,rx+rw,ry+rad,rad);ctx.lineTo(rx+rw,ry+rh-rad);
+  ctx.arcTo(rx+rw,ry+rh,rx+rw-rad,ry+rh,rad);ctx.lineTo(rx+rad,ry+rh);
+  ctx.arcTo(rx,ry+rh,rx,ry+rh-rad,rad);ctx.lineTo(rx,ry+rad);
+  ctx.arcTo(rx,ry,rx+rad,ry,rad);ctx.closePath();
 }
-
 function mkB(){
-  blocks=[];
-  var bw=(W-20)/COLS,bh=22,hid=[];
+  blocks=[];var bw=(W-20)/COLS,bh=22,hid=[];
   while(hid.length<5){var i=Math.floor(Math.random()*COLS*ROWS);if(hid.indexOf(i)===-1)hid.push(i)}
   for(var r=0;r<ROWS;r++)for(var cc=0;cc<COLS;cc++){
     var idx=r*COLS+cc;
@@ -66,34 +57,28 @@ function mkB(){
       hid:hid.indexOf(idx)!==-1,pw:['multi','wide','x2','slow'][Math.floor(Math.random()*4)],sh:0});
   }
 }
-
 function addB(bx,by,dx,dy){
   var s=slT>0?spd*0.6:spd,l=Math.sqrt(dx*dx+dy*dy)||1;
   balls.push({x:bx,y:by,dx:dx/l*s,dy:dy/l*s,r:6});
 }
-
 function reset(){
   score=0;lives=3;wT=0;s2T=0;slT=0;spd=4;
   balls=[];pups=[];parts=[];pad.w=80;pad.x=W/2-40;
   mkB();addB(W/2,pad.y-10,0.5,-1);state='play';
 }
-
 c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();inX=(e.clientX-r.left)*(W/r.width)});
 c.addEventListener('touchmove',function(e){e.preventDefault();var r=c.getBoundingClientRect();inX=(e.touches[0].clientX-r.left)*(W/r.width)},{passive:false});
 c.addEventListener('touchstart',function(e){e.preventDefault();var r=c.getBoundingClientRect();inX=(e.touches[0].clientX-r.left)*(W/r.width)},{passive:false});
-
 function spark(sx,sy,sc,n){
   for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=1+Math.random()*3;
     parts.push({x:sx,y:sy,dx:Math.cos(a)*sp,dy:Math.sin(a)*sp,life:30+Math.random()*20,c:sc,sz:2+Math.random()*3});}
 }
-
 function applyPU(t){
   if(t==='multi'){var b=balls[0]||{x:pad.x+pad.w/2,y:pad.y-10};addB(b.x,b.y,1,-1);addB(b.x,b.y,-1,-1)}
   else if(t==='wide'){pad.w=120;wT=600}
   else if(t==='x2'){s2T=600}
   else if(t==='slow'){slT=600;for(var i=0;i<balls.length;i++){balls[i].dx*=0.6;balls[i].dy*=0.6}}
 }
-
 function update(){
   if(state!=='play')return;
   var tx=Math.max(0,Math.min(W-pad.w,inX-pad.w/2));pad.x+=(tx-pad.x)*0.25;
@@ -135,7 +120,6 @@ function update(){
   if(allDead){state='clear';if(score>hisc){hisc=score;localStorage.setItem('bkHi2',hisc)}showOL()}
   if(score>hisc){hisc=score;localStorage.setItem('bkHi2',hisc)}
 }
-
 function draw(){
   x.clearRect(0,0,W,H);
   for(var i=0;i<blocks.length;i++){
@@ -171,15 +155,12 @@ function draw(){
   document.getElementById('lf').textContent=Array(lives+1).join('\u2665');
   document.getElementById('hi').textContent='HI: '+hisc;
 }
-
 function loop(){update();draw();requestAnimationFrame(loop)}
-
 function showOL(){
   var o=document.getElementById('overlay');o.className='';
   if(state==='over'){o.querySelector('h1').textContent='\uD83D\uDCA5 \u30B2\u30FC\u30E0\u30AA\u30FC\u30D0\u30FC';o.querySelector('p').textContent='\u30B9\u30B3\u30A2: '+score;o.querySelector('.sub').textContent='\u30CF\u30A4\u30B9\u30B3\u30A2: '+hisc;document.getElementById('btn').textContent='\u3082\u3046\u4E00\u56DE'}
   else if(state==='clear'){o.querySelector('h1').textContent='\uD83C\uDF89 \u30AF\u30EA\u30A2\uFF01\u304A\u3081\u3067\u3068\u3046\uFF01';o.querySelector('p').textContent='\u30B9\u30B3\u30A2: '+score;o.querySelector('.sub').textContent='\u30CF\u30A4\u30B9\u30B3\u30A2: '+hisc;document.getElementById('btn').textContent='\u3082\u3046\u4E00\u56DE'}
 }
-
 document.getElementById('btn').addEventListener('click',function(){document.getElementById('overlay').className='hidden';reset()});
 loop();
 </script>
